@@ -1,0 +1,8 @@
+{
+  "name": "CareerPilot AI",
+  "description": "Your Personal AI Placement Coach — helping college students analyze resumes, identify skill gaps, match job descriptions, practice mock interviews, and build placement roadmaps.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

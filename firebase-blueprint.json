@@ -1,0 +1,372 @@
+{
+  "entities": {
+    "StudentProfile": {
+      "title": "StudentProfile",
+      "description": "Private student profile containing academic details, placement goals, and contact email. Access strictly limited to the owning student.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the student owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Student full name.",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Student email address (PII).",
+          "minLength": 3,
+          "maxLength": 254
+        },
+        "collegeName": {
+          "type": "string",
+          "description": "College or university name.",
+          "minLength": 2,
+          "maxLength": 180
+        },
+        "degreeBranch": {
+          "type": "string",
+          "description": "Degree and engineering branch (e.g., B.Tech Computer Science).",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "graduationYear": {
+          "type": "integer",
+          "description": "Expected graduation year (e.g., 2026)."
+        },
+        "targetJobRole": {
+          "type": "string",
+          "description": "Target campus placement role (e.g., Software Development Engineer).",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when profile was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when profile was last updated."
+        }
+      },
+      "required": [
+        "userId",
+        "fullName",
+        "email",
+        "collegeName",
+        "degreeBranch",
+        "graduationYear",
+        "targetJobRole",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ResumeAnalysis": {
+      "title": "ResumeAnalysis",
+      "description": "Structured AI resume analysis generated from an uploaded PDF resume for a specific student.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the owning student.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fileName": {
+          "type": "string",
+          "description": "Original PDF filename.",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "fileSizeBytes": {
+          "type": "integer",
+          "description": "File size in bytes (max 5MB)."
+        },
+        "targetRole": {
+          "type": "string",
+          "description": "Target role context used during evaluation.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "extractedTextPreview": {
+          "type": "string",
+          "description": "Truncated preview of extracted PDF text.",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "overallScore": {
+          "type": "integer",
+          "description": "Weighted rubric score out of 100 (not an actual ATS score)."
+        },
+        "scoringMethodology": {
+          "type": "string",
+          "description": "Explanation of how the overall score was calculated from section weights.",
+          "minLength": 10,
+          "maxLength": 1200
+        },
+        "sectionScores": {
+          "type": "object",
+          "description": "Map of section-wise rubric scores (0 to 100)."
+        },
+        "extractedProfile": {
+          "type": "object",
+          "description": "Structured resume facts extracted strictly from the uploaded PDF."
+        },
+        "strengths": {
+          "type": "array",
+          "description": "Identified resume strengths (max 15 items)."
+        },
+        "weaknesses": {
+          "type": "array",
+          "description": "Identified weaknesses grounded in resume text (max 15 items)."
+        },
+        "missingInformation": {
+          "type": "array",
+          "description": "Important sections or facts absent from the uploaded PDF (max 15 items)."
+        },
+        "missingSkills": {
+          "type": "array",
+          "description": "Relevant skills not found in the resume for the target role (max 20 items)."
+        },
+        "grammarAndFormattingSuggestions": {
+          "type": "array",
+          "description": "Grammar, phrasing, and formatting feedback (max 15 items)."
+        },
+        "atsImprovementSuggestions": {
+          "type": "array",
+          "description": "ATS-readability and keyword structure recommendations (max 15 items)."
+        },
+        "actionableSuggestions": {
+          "type": "array",
+          "description": "Concrete next-step improvements (max 15 items)."
+        },
+        "topThreeImprovements": {
+          "type": "array",
+          "description": "Three highest-priority recommended improvements (max 3 items)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of analysis creation."
+        }
+      },
+      "required": [
+        "userId",
+        "fileName",
+        "fileSizeBytes",
+        "targetRole",
+        "extractedTextPreview",
+        "overallScore",
+        "scoringMethodology",
+        "sectionScores",
+        "extractedProfile",
+        "strengths",
+        "weaknesses",
+        "missingInformation",
+        "missingSkills",
+        "grammarAndFormattingSuggestions",
+        "atsImprovementSuggestions",
+        "actionableSuggestions",
+        "topThreeImprovements",
+        "createdAt"
+      ]
+    },
+    "JobMatch": {
+      "title": "JobMatch",
+      "description": "Job description match record for a student (upcoming module schema).",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "resumeId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "jobTitle": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160
+        },
+        "companyName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "matchScore": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "analyzed"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "resumeId", "jobTitle", "companyName", "matchScore", "status", "createdAt"]
+    },
+    "InterviewSession": {
+      "title": "InterviewSession",
+      "description": "Mock interview session record for a student (upcoming module schema).",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "targetRole": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": ["beginner", "intermediate", "advanced"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["in_progress", "completed"]
+        },
+        "score": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "targetRole", "difficulty", "status", "score", "createdAt", "updatedAt"]
+    },
+    "LearningRoadmap": {
+      "title": "LearningRoadmap",
+      "description": "Personalized placement roadmap record for a student (upcoming module schema).",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "targetRole": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "completionPercentage": {
+          "type": "integer"
+        },
+        "totalMilestones": {
+          "type": "integer"
+        },
+        "completedMilestones": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "completed"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "targetRole",
+        "completionPercentage",
+        "totalMilestones",
+        "completedMilestones",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PracticeResult": {
+      "title": "PracticeResult",
+      "description": "Practice arena test attempt record for a student (upcoming module schema).",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "topic": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "score": {
+          "type": "integer"
+        },
+        "totalQuestions": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["completed"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "topic", "score", "totalQuestions", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/StudentProfile" },
+      "description": "Student profile documents keyed by Firebase Auth UID. Strictly private to the owning student."
+    },
+    "/resumes/{resumeId}": {
+      "schema": { "$ref": "#/entities/ResumeAnalysis" },
+      "description": "Uploaded resume analyses owned by a student via userId."
+    },
+    "/jobMatches/{matchId}": {
+      "schema": { "$ref": "#/entities/JobMatch" },
+      "description": "Job description match evaluations owned by a student via userId."
+    },
+    "/interviews/{interviewId}": {
+      "schema": { "$ref": "#/entities/InterviewSession" },
+      "description": "AI mock interview sessions owned by a student via userId."
+    },
+    "/roadmaps/{roadmapId}": {
+      "schema": { "$ref": "#/entities/LearningRoadmap" },
+      "description": "Personalized placement roadmaps owned by a student via userId."
+    },
+    "/practiceResults/{resultId}": {
+      "schema": { "$ref": "#/entities/PracticeResult" },
+      "description": "Practice Arena assessment results owned by a student via userId."
+    }
+  }
+}

@@ -1,0 +1,460 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Global Hardened Primitives
+    // -------------------------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isBoundedString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isBoundedStringList(arr, maxItems, maxItemLen) {
+      return arr is list &&
+        arr.size() <= maxItems &&
+        (arr.size() == 0 || (arr[0] is string && arr[0].size() <= maxItemLen));
+    }
+
+    function isValidScore(val) {
+      return val is int && val >= 0 && val <= 100;
+    }
+
+    // -------------------------------------------------------------------------
+    // Entity Validation Blueprints (Anti-Update-Gap)
+    // -------------------------------------------------------------------------
+    function isValidStudentProfile(data) {
+      return data.keys().hasAll([
+          'userId',
+          'fullName',
+          'email',
+          'collegeName',
+          'degreeBranch',
+          'graduationYear',
+          'targetJobRole',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'userId',
+          'fullName',
+          'email',
+          'collegeName',
+          'degreeBranch',
+          'graduationYear',
+          'targetJobRole',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        isValidId(data.userId) &&
+        data.userId == request.auth.uid &&
+        isBoundedString(data.fullName, 2, 120) &&
+        isBoundedString(data.email, 3, 254) &&
+        isBoundedString(data.collegeName, 2, 180) &&
+        isBoundedString(data.degreeBranch, 2, 140) &&
+        data.graduationYear is int &&
+        data.graduationYear >= 2020 &&
+        data.graduationYear <= 2035 &&
+        isBoundedString(data.targetJobRole, 2, 120) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidSectionScores(scores) {
+      return scores is map &&
+        scores.keys().hasAll([
+          'contact',
+          'education',
+          'technicalSkills',
+          'projects',
+          'experienceAndInternships',
+          'formattingAndClarity'
+        ]) &&
+        scores.keys().hasOnly([
+          'contact',
+          'education',
+          'technicalSkills',
+          'projects',
+          'experienceAndInternships',
+          'formattingAndClarity'
+        ]) &&
+        isValidScore(scores.contact) &&
+        isValidScore(scores.education) &&
+        isValidScore(scores.technicalSkills) &&
+        isValidScore(scores.projects) &&
+        isValidScore(scores.experienceAndInternships) &&
+        isValidScore(scores.formattingAndClarity);
+    }
+
+    function isValidExtractedProfile(profile) {
+      return profile is map &&
+        profile.keys().hasAll([
+          'contactInfo',
+          'education',
+          'technicalSkills',
+          'projects',
+          'internships',
+          'certifications',
+          'achievements'
+        ]) &&
+        profile.keys().hasOnly([
+          'contactInfo',
+          'education',
+          'technicalSkills',
+          'projects',
+          'internships',
+          'certifications',
+          'achievements'
+        ]) &&
+        isBoundedStringList(profile.contactInfo, 10, 200) &&
+        isBoundedStringList(profile.education, 10, 350) &&
+        isBoundedStringList(profile.technicalSkills, 60, 120) &&
+        isBoundedStringList(profile.projects, 15, 500) &&
+        isBoundedStringList(profile.internships, 15, 500) &&
+        isBoundedStringList(profile.certifications, 20, 300) &&
+        isBoundedStringList(profile.achievements, 20, 350);
+    }
+
+    function isValidResumeAnalysis(data) {
+      return data.keys().hasAll([
+          'userId',
+          'fileName',
+          'fileSizeBytes',
+          'targetRole',
+          'extractedTextPreview',
+          'overallScore',
+          'scoringMethodology',
+          'sectionScores',
+          'extractedProfile',
+          'strengths',
+          'weaknesses',
+          'missingInformation',
+          'missingSkills',
+          'grammarAndFormattingSuggestions',
+          'atsImprovementSuggestions',
+          'actionableSuggestions',
+          'topThreeImprovements',
+          'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'userId',
+          'fileName',
+          'fileSizeBytes',
+          'targetRole',
+          'extractedTextPreview',
+          'overallScore',
+          'scoringMethodology',
+          'sectionScores',
+          'extractedProfile',
+          'strengths',
+          'weaknesses',
+          'missingInformation',
+          'missingSkills',
+          'grammarAndFormattingSuggestions',
+          'atsImprovementSuggestions',
+          'actionableSuggestions',
+          'topThreeImprovements',
+          'createdAt'
+        ]) &&
+        isValidId(data.userId) &&
+        data.userId == request.auth.uid &&
+        isBoundedString(data.fileName, 1, 255) &&
+        data.fileSizeBytes is int &&
+        data.fileSizeBytes > 0 &&
+        data.fileSizeBytes <= 5242880 &&
+        isBoundedString(data.targetRole, 1, 120) &&
+        isBoundedString(data.extractedTextPreview, 1, 4000) &&
+        isValidScore(data.overallScore) &&
+        isBoundedString(data.scoringMethodology, 10, 1200) &&
+        isValidSectionScores(data.sectionScores) &&
+        isValidExtractedProfile(data.extractedProfile) &&
+        isBoundedStringList(data.strengths, 15, 500) &&
+        isBoundedStringList(data.weaknesses, 15, 500) &&
+        isBoundedStringList(data.missingInformation, 15, 500) &&
+        isBoundedStringList(data.missingSkills, 20, 160) &&
+        isBoundedStringList(data.grammarAndFormattingSuggestions, 15, 500) &&
+        isBoundedStringList(data.atsImprovementSuggestions, 15, 500) &&
+        isBoundedStringList(data.actionableSuggestions, 15, 500) &&
+        isBoundedStringList(data.topThreeImprovements, 3, 500) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidJobMatch(data) {
+      return data.keys().hasAll([
+          'userId',
+          'resumeId',
+          'jobTitle',
+          'companyName',
+          'matchScore',
+          'status',
+          'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'userId',
+          'resumeId',
+          'jobTitle',
+          'companyName',
+          'matchScore',
+          'status',
+          'createdAt'
+        ]) &&
+        isValidId(data.userId) &&
+        data.userId == request.auth.uid &&
+        isValidId(data.resumeId) &&
+        isBoundedString(data.jobTitle, 2, 160) &&
+        isBoundedString(data.companyName, 1, 160) &&
+        isValidScore(data.matchScore) &&
+        (data.status == 'draft' || data.status == 'analyzed') &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidInterviewSession(data) {
+      return data.keys().hasAll([
+          'userId',
+          'targetRole',
+          'difficulty',
+          'status',
+          'score',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'userId',
+          'targetRole',
+          'difficulty',
+          'status',
+          'score',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        isValidId(data.userId) &&
+        data.userId == request.auth.uid &&
+        isBoundedString(data.targetRole, 2, 120) &&
+        (data.difficulty == 'beginner' || data.difficulty == 'intermediate' || data.difficulty == 'advanced') &&
+        (data.status == 'in_progress' || data.status == 'completed') &&
+        isValidScore(data.score) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidLearningRoadmap(data) {
+      return data.keys().hasAll([
+          'userId',
+          'targetRole',
+          'completionPercentage',
+          'totalMilestones',
+          'completedMilestones',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'userId',
+          'targetRole',
+          'completionPercentage',
+          'totalMilestones',
+          'completedMilestones',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        isValidId(data.userId) &&
+        data.userId == request.auth.uid &&
+        isBoundedString(data.targetRole, 2, 120) &&
+        isValidScore(data.completionPercentage) &&
+        data.totalMilestones is int &&
+        data.totalMilestones >= 0 &&
+        data.totalMilestones <= 100 &&
+        data.completedMilestones is int &&
+        data.completedMilestones >= 0 &&
+        data.completedMilestones <= data.totalMilestones &&
+        (data.status == 'active' || data.status == 'completed') &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidPracticeResult(data) {
+      return data.keys().hasAll([
+          'userId',
+          'topic',
+          'score',
+          'totalQuestions',
+          'status',
+          'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'userId',
+          'topic',
+          'score',
+          'totalQuestions',
+          'status',
+          'createdAt'
+        ]) &&
+        isValidId(data.userId) &&
+        data.userId == request.auth.uid &&
+        isBoundedString(data.topic, 2, 120) &&
+        data.score is int &&
+        data.score >= 0 &&
+        data.score <= 1000 &&
+        data.totalQuestions is int &&
+        data.totalQuestions >= 1 &&
+        data.totalQuestions <= 1000 &&
+        data.score <= data.totalQuestions &&
+        data.status == 'completed' &&
+        data.createdAt is timestamp;
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection Match Rules
+    // -------------------------------------------------------------------------
+
+    // 1. Student Profiles (PII-isolated: owner-only get, no list)
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false;
+      allow create: if isVerifiedUser() &&
+        isValidId(userId) &&
+        request.auth.uid == userId &&
+        isValidStudentProfile(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isValidId(userId) &&
+        request.auth.uid == userId &&
+        isValidStudentProfile(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().email == existing().email &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'fullName',
+          'collegeName',
+          'degreeBranch',
+          'graduationYear',
+          'targetJobRole',
+          'updatedAt'
+        ]);
+      allow delete: if isVerifiedUser() && isValidId(userId) && request.auth.uid == userId;
+    }
+
+    // 2. Resume Analyses (Immutable owner-scoped documents)
+    match /resumes/{resumeId} {
+      allow get: if isSignedIn() && isValidId(resumeId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isVerifiedUser() &&
+        isValidId(resumeId) &&
+        isValidResumeAnalysis(incoming()) &&
+        incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isVerifiedUser() && isValidId(resumeId) && existing().userId == request.auth.uid;
+    }
+
+    // 3. Job Matches (Owner-scoped with relational resume ownership check)
+    match /jobMatches/{matchId} {
+      allow get: if isSignedIn() && isValidId(matchId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isVerifiedUser() &&
+        isValidId(matchId) &&
+        isValidJobMatch(incoming()) &&
+        incoming().createdAt == request.time &&
+        exists(/databases/$(database)/documents/resumes/$(incoming().resumeId)) &&
+        get(/databases/$(database)/documents/resumes/$(incoming().resumeId)).data.userId == request.auth.uid;
+      allow update: if isVerifiedUser() &&
+        isValidId(matchId) &&
+        isValidJobMatch(incoming()) &&
+        existing().userId == request.auth.uid &&
+        existing().status == 'draft' &&
+        incoming().userId == existing().userId &&
+        incoming().resumeId == existing().resumeId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['matchScore', 'status']);
+      allow delete: if isVerifiedUser() && isValidId(matchId) && existing().userId == request.auth.uid;
+    }
+
+    // 4. Mock Interviews (Owner-scoped with terminal completion lock)
+    match /interviews/{interviewId} {
+      allow get: if isSignedIn() && isValidId(interviewId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isVerifiedUser() &&
+        isValidId(interviewId) &&
+        isValidInterviewSession(incoming()) &&
+        incoming().status == 'in_progress' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isValidId(interviewId) &&
+        isValidInterviewSession(incoming()) &&
+        existing().userId == request.auth.uid &&
+        existing().status == 'in_progress' &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['score', 'status', 'updatedAt']);
+      allow delete: if isVerifiedUser() && isValidId(interviewId) && existing().userId == request.auth.uid;
+    }
+
+    // 5. Learning Roadmaps (Owner-scoped with terminal completion lock)
+    match /roadmaps/{roadmapId} {
+      allow get: if isSignedIn() && isValidId(roadmapId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isVerifiedUser() &&
+        isValidId(roadmapId) &&
+        isValidLearningRoadmap(incoming()) &&
+        incoming().status == 'active' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser() &&
+        isValidId(roadmapId) &&
+        isValidLearningRoadmap(incoming()) &&
+        existing().userId == request.auth.uid &&
+        existing().status == 'active' &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'completionPercentage',
+          'completedMilestones',
+          'status',
+          'updatedAt'
+        ]);
+      allow delete: if isVerifiedUser() && isValidId(roadmapId) && existing().userId == request.auth.uid;
+    }
+
+    // 6. Practice Results (Immutable owner-scoped assessment records)
+    match /practiceResults/{resultId} {
+      allow get: if isSignedIn() && isValidId(resultId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isVerifiedUser() &&
+        isValidId(resultId) &&
+        isValidPracticeResult(incoming()) &&
+        incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isVerifiedUser() && isValidId(resultId) && existing().userId == request.auth.uid;
+    }
+  }
+}
